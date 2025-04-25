@@ -622,7 +622,7 @@
 
             <div class="gallery-container">
                 <div class="gallery" id="gallery">
-                    <!-- Photosadded by JavaScript -->
+                    <!-- Photos will be added by JavaScript -->
                 </div>
             </div>
         </div>
@@ -690,7 +690,7 @@
         }];
 
         // Special photo for WhatsApp sharing
-        const whatsappPhoto = 'img 1.jpg';
+        const whatsappPhoto = 'whatsapp-image.jpg';
 
         // DOM Elements
         const startBtn = document.getElementById('startBtn');
@@ -901,11 +901,29 @@
             const ctx = canvas.getContext('2d');
             const img = new Image();
 
-            img.crossOrigin = 'Anonymous'; // Handle CORS if needed
+            // Use a placeholder if the photo fails to load
+            img.onerror = function() {
+                // Fallback design with solid background
+                canvas.width = 1080;
+                canvas.height = 1920;
+
+                // Gradient background
+                const gradient = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+                gradient.addColorStop(0, '#ff85a2');
+                gradient.addColorStop(1, '#a685ff');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+                // Add text
+                addTextToCanvas(ctx, canvas, wishText);
+                finalizeSharing(canvas);
+            };
+
+            img.crossOrigin = 'Anonymous';
             img.src = whatsappPhoto;
 
             img.onload = function() {
-                // Set canvas dimensions (WhatsApp status size is 1080x1920)
+                // Set canvas dimensions (WhatsApp status size)
                 canvas.width = 1080;
                 canvas.height = 1920;
 
@@ -916,83 +934,125 @@
                 ctx.drawImage(img, x, y, img.width * ratio, img.height * ratio);
 
                 // Add dark overlay for better text visibility
-                ctx.fillStyle = 'rgba(0, 0, 0, 0.4)';
+                ctx.fillStyle = 'rgba(0, 0, 0, 0.3)';
                 ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-                // Add text
-                ctx.fillStyle = 'white';
-                ctx.textAlign = 'center';
-
-                // Birthday title
-                ctx.font = 'bold 80px "Dancing Script", cursive';
-                ctx.fillText('Happy Birthday!', canvas.width / 2, 200);
-
-                // The wish text
-                ctx.font = '40px "Montserrat", sans-serif';
-
-                // Split the text into lines that fit the canvas
-                const maxWidth = canvas.width - 100;
-                const lineHeight = 50;
-                const lines = [];
-                let currentLine = '';
-
-                wishText.split(' ').forEach(word => {
-                    const testLine = currentLine + word + ' ';
-                    const metrics = ctx.measureText(testLine);
-
-                    if (metrics.width < maxWidth) {
-                        currentLine = testLine;
-                    } else {
-                        lines.push(currentLine);
-                        currentLine = word + ' ';
-                    }
-                });
-                lines.push(currentLine);
-
-                // Draw each line
-                lines.forEach((line, i) => {
-                    ctx.fillText(line.trim(), canvas.width / 2, 300 + (i * lineHeight));
-                });
-
-                // Add signature
-                ctx.font = 'italic 30px "Montserrat", sans-serif';
-                ctx.fillText('- Shared with love from the birthday page -', canvas.width / 2, canvas.height - 150);
-
-                // Convert canvas to image and share
-                canvas.toBlob(function(blob) {
-                    const file = new File([blob], 'birthday-wish.png', {
-                        type: 'image/png'
-                    });
-
-                    // Create a temporary link to share
-                    const shareUrl = URL.createObjectURL(file);
-
-                    // Open WhatsApp with this image
-                    if (navigator.userAgent.match(/Android/i)) {
-                        // For Android - use WhatsApp's intent
-                        window.open(`whatsapp://send?text=${encodeURIComponent('Check out this birthday wish!')}`);
-                    } else {
-                        // For iOS/Desktop - use web API
-                        window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('Check out this birthday wish! ' + shareUrl)}`);
-                    }
-
-                    // Clean up
-                    setTimeout(() => {
-                        URL.revokeObjectURL(shareUrl);
-                    }, 1000);
-                }, 'image/png');
+                // Add text and finalize
+                addTextToCanvas(ctx, canvas, wishText);
+                finalizeSharing(canvas);
             };
+        }
 
-            img.onerror = function() {
-                // Fallback - just share the text if image fails to load
-                const text = `Happy Birthday!\n\n"${message}" - ${name}\n\nShared with love from the birthday page`;
+        // Helper function to add text to canvas
+        function addTextToCanvas(ctx, canvas, wishText) {
+            ctx.fillStyle = 'white';
+            ctx.textAlign = 'center';
 
-                if (navigator.userAgent.match(/Android/i)) {
-                    window.open(`whatsapp://send?text=${encodeURIComponent(text)}`);
+            // Birthday title
+            ctx.font = 'bold 80px "Dancing Script", cursive';
+            ctx.fillText('Happy Birthday!', canvas.width / 2, 200);
+
+            // The wish text
+            ctx.font = '40px "Montserrat", sans-serif';
+
+            // Split the text into lines that fit the canvas
+            const maxWidth = canvas.width - 100;
+            const lineHeight = 50;
+            const lines = [];
+            let currentLine = '';
+
+            wishText.split(' ').forEach(word => {
+                const testLine = currentLine + word + ' ';
+                const metrics = ctx.measureText(testLine);
+
+                if (metrics.width < maxWidth) {
+                    currentLine = testLine;
                 } else {
-                    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(text)}`);
+                    lines.push(currentLine);
+                    currentLine = word + ' ';
                 }
-            };
+            });
+            lines.push(currentLine);
+
+            // Draw each line with shadow for better readability
+            ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+            ctx.shadowBlur = 5;
+            ctx.shadowOffsetX = 2;
+            ctx.shadowOffsetY = 2;
+
+            lines.forEach((line, i) => {
+                ctx.fillText(line.trim(), canvas.width / 2, 300 + (i * lineHeight));
+            });
+
+            // Reset shadow
+            ctx.shadowColor = 'transparent';
+
+            // Add decorative elements
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.3)';
+            ctx.lineWidth = 2;
+
+            // Top decorative line
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.2, 150);
+            ctx.lineTo(canvas.width * 0.8, 150);
+            ctx.stroke();
+
+            // Bottom decorative line
+            ctx.beginPath();
+            ctx.moveTo(canvas.width * 0.2, canvas.height - 200);
+            ctx.lineTo(canvas.width * 0.8, canvas.height - 200);
+            ctx.stroke();
+
+            // Add signature
+            ctx.font = 'italic 30px "Montserrat", sans-serif';
+            ctx.fillText('- Shared with love -', canvas.width / 2, canvas.height - 150);
+        }
+
+        // Finalize the sharing process
+        function finalizeSharing(canvas) {
+            canvas.toBlob(function(blob) {
+                const file = new File([blob], 'birthday-wish.png', {
+                    type: 'image/png',
+                    lastModified: Date.now()
+                });
+
+                // Create share data
+                const shareData = {
+                    files: [file],
+                    title: 'Birthday Wish',
+                    text: 'Check out this beautiful birthday wish!'
+                };
+
+                // Try Web Share API first (mobile browsers)
+                if (navigator.canShare && navigator.canShare(shareData)) {
+                    navigator.share(shareData)
+                        .catch(err => {
+                            console.log('Web Share failed, falling back to WhatsApp:', err);
+                            openWhatsAppWithImage(blob);
+                        });
+                } else {
+                    openWhatsAppWithImage(blob);
+                }
+            }, 'image/png', 0.9);
+        }
+
+        // Open WhatsApp with the image
+        function openWhatsAppWithImage(blob) {
+            const shareUrl = URL.createObjectURL(blob);
+
+            // Detect Android
+            if (/Android/i.test(navigator.userAgent)) {
+                // For Android - use WhatsApp's intent
+                window.location.href = `whatsapp://send?text=${encodeURIComponent('Check out this birthday wish!')}`;
+            } else {
+                // For iOS/Desktop - use web API
+                window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent('Check out this birthday wish! ' + shareUrl)}`);
+            }
+
+            // Clean up
+            setTimeout(() => {
+                URL.revokeObjectURL(shareUrl);
+            }, 10000);
         }
 
         // Event listeners
